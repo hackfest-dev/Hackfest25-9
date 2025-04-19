@@ -13,11 +13,47 @@ import { Slider } from "@/components/ui/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Globe, Users, Heart, ArrowRight, Calendar, CheckCircle2, ThumbsUp, ThumbsDown } from "lucide-react"
 import { GlobeVisualization } from "@/components/globe-visualization"
+import { toast } from "react-hot-toast"
 
 export function CommunityAidNetwork() {
   const [activeTab, setActiveTab] = useState("projects")
   const [donationAmount, setDonationAmount] = useState(100)
   const [selectedProject, setSelectedProject] = useState<number | null>(null)
+  const [proposals, setProposals] = useState([
+    {
+      id: 1,
+      title: "Community-Led Reforestation",
+      creator: "EcoAlliance",
+      category: "Environment",
+      votes: { yes: 342, no: 28 },
+      status: "Active",
+      endDate: "May 15, 2024",
+      description: "Funding local communities to plant native trees and restore degraded forest ecosystems.",
+      requestedAmount: 65000,
+    },
+    {
+      id: 2,
+      title: "Microfinance for Women Entrepreneurs",
+      creator: "EmpowerFund",
+      category: "Economic",
+      votes: { yes: 289, no: 42 },
+      status: "Active",
+      endDate: "May 10, 2024",
+      description: "Providing microloans to women entrepreneurs in developing regions to start sustainable businesses.",
+      requestedAmount: 50000,
+    },
+    {
+      id: 3,
+      title: "Emergency Food Relief",
+      creator: "GlobalAid",
+      category: "Humanitarian",
+      votes: { yes: 412, no: 15 },
+      status: "Active",
+      endDate: "May 5, 2024",
+      description: "Distributing emergency food supplies to regions affected by natural disasters and conflict.",
+      requestedAmount: 80000,
+    },
+  ])
 
   const aidProjects = [
     {
@@ -78,42 +114,6 @@ export function CommunityAidNetwork() {
     },
   ]
 
-  const proposals = [
-    {
-      id: 1,
-      title: "Community-Led Reforestation",
-      creator: "EcoAlliance",
-      category: "Environment",
-      votes: { yes: 342, no: 28 },
-      status: "Active",
-      endDate: "May 15, 2024",
-      description: "Funding local communities to plant native trees and restore degraded forest ecosystems.",
-      requestedAmount: 65000,
-    },
-    {
-      id: 2,
-      title: "Microfinance for Women Entrepreneurs",
-      creator: "EmpowerFund",
-      category: "Economic",
-      votes: { yes: 289, no: 42 },
-      status: "Active",
-      endDate: "May 10, 2024",
-      description: "Providing microloans to women entrepreneurs in developing regions to start sustainable businesses.",
-      requestedAmount: 50000,
-    },
-    {
-      id: 3,
-      title: "Emergency Food Relief",
-      creator: "GlobalAid",
-      category: "Humanitarian",
-      votes: { yes: 412, no: 15 },
-      status: "Active",
-      endDate: "May 5, 2024",
-      description: "Distributing emergency food supplies to regions affected by natural disasters and conflict.",
-      requestedAmount: 80000,
-    },
-  ]
-
   const completedProjects = [
     {
       id: 1,
@@ -140,6 +140,44 @@ export function CommunityAidNetwork() {
   ]
 
   const selectedProjectData = selectedProject ? aidProjects.find((p) => p.id === selectedProject) : null
+
+  // Function to check if user has voted on a proposal
+  const hasUserVoted = (proposalId: number) => {
+    if (typeof window === 'undefined') return false
+    const userVotes = JSON.parse(localStorage.getItem('userVotes') || '{}')
+    return userVotes[proposalId] !== undefined
+  }
+
+  // Function to handle voting
+  const handleVote = (proposalId: number, voteType: 'yes' | 'no') => {
+    if (hasUserVoted(proposalId)) {
+      toast.error("You have already voted on this proposal")
+      return
+    }
+
+    // Update votes in state
+    setProposals(prevProposals => 
+      prevProposals.map(proposal => {
+        if (proposal.id === proposalId) {
+          return {
+            ...proposal,
+            votes: {
+              ...proposal.votes,
+              [voteType]: proposal.votes[voteType] + 1
+            }
+          }
+        }
+        return proposal
+      })
+    )
+
+    // Store vote in localStorage
+    const userVotes = JSON.parse(localStorage.getItem('userVotes') || '{}')
+    userVotes[proposalId] = voteType
+    localStorage.setItem('userVotes', JSON.stringify(userVotes))
+
+    toast.success(`Vote ${voteType === 'yes' ? 'Yes' : 'No'} recorded successfully`)
+  }
 
   return (
     <div className="container py-8">
@@ -535,12 +573,18 @@ export function CommunityAidNetwork() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button className="flex-1 bg-green-600 hover:bg-green-700">
+                        <Button 
+                          className={`flex-1 ${hasUserVoted(proposal.id) ? 'opacity-50 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
+                          onClick={() => handleVote(proposal.id, 'yes')}
+                          disabled={hasUserVoted(proposal.id)}
+                        >
                           <ThumbsUp className="mr-2 size-4" /> Vote Yes
                         </Button>
                         <Button
                           variant="outline"
-                          className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                          className={`flex-1 ${hasUserVoted(proposal.id) ? 'opacity-50 cursor-not-allowed' : 'border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700'}`}
+                          onClick={() => handleVote(proposal.id, 'no')}
+                          disabled={hasUserVoted(proposal.id)}
                         >
                           <ThumbsDown className="mr-2 size-4" /> Vote No
                         </Button>

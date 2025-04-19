@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -16,6 +16,9 @@ import {
   Bell,
   Menu,
   X,
+  User,
+  Settings,
+  LogOut,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -30,9 +33,71 @@ import { Badge } from "@/components/ui/badge"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { ThemeToggle } from "@/components/theme-toggle"
 
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .map(word => word[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+}
+
+function getRandomColor() {
+  const colors = [
+    'bg-blue-500',
+    'bg-green-500',
+    'bg-purple-500',
+    'bg-pink-500',
+    'bg-indigo-500',
+    'bg-teal-500',
+    'bg-orange-500',
+    'bg-red-500'
+  ]
+  return colors[Math.floor(Math.random() * colors.length)]
+}
+
 export function Navbar() {
   const [connected, setConnected] = useState(true)
+  const [userProfile, setUserProfile] = useState<any>(null)
+  const [avatarColor, setAvatarColor] = useState(getRandomColor())
   const pathname = usePathname()
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) return
+
+        // Decode the token to get user info immediately
+        const tokenParts = token.split('.')
+        if (tokenParts.length === 3) {
+          const payload = JSON.parse(atob(tokenParts[1]))
+          if (payload.userId) {
+            setUserProfile(prev => ({
+              ...prev,
+              fullName: payload.email?.split('@')[0] || 'User',
+              email: payload.email || 'guest@example.com'
+            }))
+          }
+        }
+
+        const response = await fetch('/api/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setUserProfile(data.data)
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error)
+      }
+    }
+
+    fetchUserProfile()
+  }, [])
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -45,7 +110,7 @@ export function Navbar() {
   ]
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-800 bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-slate-900/75">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
           <Link href="/dashboard" className="flex items-center gap-2">
@@ -92,34 +157,39 @@ export function Navbar() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-2 px-2">
                     <Avatar className="size-8">
-                      <AvatarImage src="/placeholder.svg" alt="User" />
-                      <AvatarFallback className="bg-slate-700 text-slate-200">JD</AvatarFallback>
+                      <AvatarImage src={userProfile?.avatar || "/placeholder.svg"} alt={userProfile?.fullName || "User"} />
+                      <AvatarFallback className={`${avatarColor} text-white`}>
+                        {userProfile?.fullName ? getInitials(userProfile.fullName) : "U"}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col items-start text-left">
-                      <span className="text-sm font-medium">John Doe</span>
-                      <span className="text-xs text-slate-400">0x7F...A3D9</span>
+                      <span className="text-sm font-medium">{userProfile?.fullName || "Guest User"}</span>
+                      <span className="text-xs text-slate-400">{userProfile?.email || "guest@example.com"}</span>
                     </div>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuContent align="end" className="w-56 bg-slate-900 border-slate-800">
+                  <DropdownMenuLabel className="text-slate-400">My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-slate-800" />
-                  <DropdownMenuItem className="focus:bg-slate-800">
-                    <Wallet className="mr-2 size-4" />
-                    <span>Wallet</span>
+                  <DropdownMenuItem className="text-slate-200 focus:bg-slate-800 focus:text-slate-200">
+                    <User className="mr-2 size-4" />
+                    Profile
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="focus:bg-slate-800">
-                    <Shield className="mr-2 size-4" />
-                    <span>Security</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="focus:bg-slate-800">
-                    <Users className="mr-2 size-4" />
-                    <span>Referrals</span>
+                  <DropdownMenuItem className="text-slate-200 focus:bg-slate-800 focus:text-slate-200">
+                    <Settings className="mr-2 size-4" />
+                    Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-slate-800" />
-                  <DropdownMenuItem onClick={() => setConnected(false)} className="focus:bg-slate-800">
-                    <X className="mr-2 size-4" />
-                    <span>Disconnect</span>
+                  <DropdownMenuItem 
+                    className="text-slate-200 focus:bg-slate-800 focus:text-slate-200"
+                    onClick={() => {
+                      localStorage.removeItem('token')
+                      setConnected(false)
+                      window.location.href = '/'
+                    }}
+                  >
+                    <LogOut className="mr-2 size-4" />
+                    Logout
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -177,21 +247,27 @@ export function Navbar() {
                     <div className="flex flex-col gap-4">
                       <div className="flex items-center gap-3">
                         <Avatar className="size-10">
-                          <AvatarImage src="/placeholder.svg" alt="User" />
-                          <AvatarFallback className="bg-slate-700 text-slate-200">JD</AvatarFallback>
+                          <AvatarImage src={userProfile?.avatar || "/placeholder.svg"} alt={userProfile?.fullName || "User"} />
+                          <AvatarFallback className={`${avatarColor} text-white`}>
+                            {userProfile?.fullName ? getInitials(userProfile.fullName) : "U"}
+                          </AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="font-medium">John Doe</div>
-                          <div className="text-xs text-slate-400">0x7F...A3D9</div>
+                          <div className="font-medium">{userProfile?.fullName || "Guest User"}</div>
+                          <div className="text-xs text-slate-400">{userProfile?.email || "guest@example.com"}</div>
                         </div>
                       </div>
                       <Button
                         variant="outline"
                         className="w-full justify-start border-slate-700"
-                        onClick={() => setConnected(false)}
+                        onClick={() => {
+                          localStorage.removeItem('token')
+                          setConnected(false)
+                          window.location.href = '/'
+                        }}
                       >
-                        <X className="mr-2 size-4" />
-                        Disconnect
+                        <LogOut className="mr-2 size-4" />
+                        Logout
                       </Button>
                     </div>
                   ) : (

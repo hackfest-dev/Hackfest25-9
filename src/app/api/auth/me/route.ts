@@ -1,30 +1,43 @@
-import { NextRequest } from 'next/server';
-import { findOne } from '@/lib/mongodb/utils';
-import { successResponse, errorResponse, notFoundResponse, serverErrorResponse } from '@/lib/api-response';
+import { NextResponse } from 'next/server';
+import { authMiddleware } from '@/middleware/auth';
+import connectToDatabase from '@/lib/mongodb';
 import User from '@/lib/mongodb/models/User';
+import { NextRequest } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get the user ID from the request headers (set by the middleware)
-    const userId = request.headers.get('x-user-id');
-    
-    if (!userId) {
-      return errorResponse('User ID not found in request', 401);
+    // Apply authentication middleware
+    const authResult = await authMiddleware(request);
+    if ('error' in authResult) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: 401 }
+      );
     }
-    
-    // Find the user by ID
-    const user = await findOne(User, { _id: userId });
-    
+
+    const { userId } = authResult as { userId: string };
+
+    // Connect to database
+    await connectToDatabase();
+
+    // Find user by ID
+    const user = await User.findById(userId).select('-password');
     if (!user) {
-      return notFoundResponse('User not found');
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
     }
-    
-    // Remove sensitive information from the user object
-    const { password, ...userWithoutPassword } = user.toObject();
-    
-    return successResponse(userWithoutPassword);
+
+    return NextResponse.json({
+      success: true,
+      data: user
+    });
   } catch (error) {
     console.error('Error fetching user profile:', error);
-    return serverErrorResponse('Failed to fetch user profile');
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 } 

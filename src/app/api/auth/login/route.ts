@@ -51,10 +51,22 @@ export async function POST(request: NextRequest) {
     const { password, ...userWithoutPassword } = user.toObject();
     
     console.log("Login successful for user:", user.email);
-    return successResponse({
+    
+    // Create response with cookie
+    const response = successResponse({
       user: userWithoutPassword,
       token,
     }, 'Login successful');
+    
+    // Set user ID in cookie
+    response.cookies.set('userId', user._id.toString(), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 // 24 hours
+    });
+    
+    return response;
   } catch (error) {
     console.error('Error during login:', error);
     return serverErrorResponse('Failed to authenticate user');
