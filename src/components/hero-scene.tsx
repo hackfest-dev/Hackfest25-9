@@ -218,7 +218,7 @@ export function HeroScene() {
   }
 
   return (
-    <Canvas camera={{ position: [0, 0, 8], fov: 50 }}>
+    <Canvas camera={{ position: [0, 0, 8], fov: 50 }} style={{ padding: 0 }}>
       <color attach="background" args={["#000000"]} />
       <ambientLight intensity={0.5} />
       <pointLight position={[10, 10, 10]} intensity={1} />

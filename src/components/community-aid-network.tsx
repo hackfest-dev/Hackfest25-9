@@ -237,7 +237,7 @@ export function CommunityAidNetwork() {
         </div>
 
         {/* Right Section - Globe Visualization */}
-        <div className="h-[400px] rounded-xl bg-gradient-to-br from-blue-50 to-green-50 dark:from-blue-900 dark:to-green-900 p-4">
+        <div className="h-[400px] rounded-xl bg-gradient-to-br from-blue-50 to-green-50 dark:from-blue-900 dark:to-green-900">
           <GlobeVisualization />
         </div>
       </div>

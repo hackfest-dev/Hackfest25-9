@@ -160,7 +160,7 @@ export function GlobeVisualization() {
 
   return (
     <Canvas camera={{ position: [0, 0, 3], fov: 45 }}>
-      <color attach="background" args={["#f8fafc"]} />
+      <color attach="background" args={["#000000"]} />
       <ambientLight intensity={0.5} />
       <pointLight position={[10, 10, 10]} intensity={1} />
       <spotLight position={[-10, 10, -10]} intensity={0.5} color="#ffffff" />

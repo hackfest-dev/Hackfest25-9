@@ -251,7 +251,7 @@ export function Dashboard() {
 
             {/* Visual content */}
             <motion.div
-              className="h-[400px] w-full rounded-2xl bg-gradient-to-br from-[#1FC6C1]/10 to-white/10 p-4 shadow-md"
+              className="h-[400px] w-full rounded-2xl bg-gradient-to-br from-[#1FC6C1]/10 to-white/10 shadow-md"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.7 }}
