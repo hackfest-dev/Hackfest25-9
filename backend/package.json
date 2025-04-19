@@ -1,0 +1,26 @@
+{
+  "name": "unity-vault-backend",
+  "version": "1.0.0",
+  "description": "Backend for Unity Vault Solana Program",
+  "main": "index.ts",
+  "scripts": {
+    "start": "bun run index.ts",
+    "dev": "bun --watch run index.ts",
+    "build": "bun build ./index.ts --outdir ./dist"
+  },
+  "dependencies": {
+    "@solana/spl-token": "^0.3.9",
+    "@solana/web3.js": "^1.87.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "borsh": "^2.0.0",
+    "buffer": "^6.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "typescript": "^5.3.3"
+  },
+  "devDependencies": {
+    "bun-types": "^1.0.0"
+  }
+}
