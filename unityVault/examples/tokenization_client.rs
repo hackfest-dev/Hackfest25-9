@@ -60,31 +60,25 @@ impl TokenizationClient {
         let token_account_size = TokenAccount::get_packed_len();
         let token_account_rent = self.client.get_minimum_balance_for_rent_exemption(token_account_size)?;
 
-        // Create token info account instruction
-        let create_token_info_ix = system_instruction::create_account(
+        // Fund token info account
+        let fund_token_info_ix = system_instruction::transfer(
             &creator.pubkey(),
             &token_info_pda,
             token_info_rent,
-            token_info_size as u64,
-            &self.program_id,
         );
 
-        // Create mint account instruction
-        let create_mint_ix = system_instruction::create_account(
+        // Fund mint account
+        let fund_mint_ix = system_instruction::transfer(
             &creator.pubkey(),
             &mint.pubkey(),
             mint_rent,
-            mint_size as u64,
-            &spl_token::id(),
         );
 
-        // Create token account instruction
-        let create_token_account_ix = system_instruction::create_account(
+        // Fund token account
+        let fund_token_account_ix = system_instruction::transfer(
             &creator.pubkey(),
             &creator_token_account.pubkey(),
             token_account_rent,
-            token_account_size as u64,
-            &spl_token::id(),
         );
 
         // Create token instruction
@@ -112,19 +106,19 @@ impl TokenizationClient {
         // Get recent blockhash
         let recent_blockhash = self.client.get_latest_blockhash()?;
 
-        // Create and send transaction for account creation
-        let mut setup_transaction = Transaction::new_with_payer(
+        // Create and send transaction for funding accounts
+        let mut fund_transaction = Transaction::new_with_payer(
             &[
-                create_token_info_ix,
-                create_mint_ix,
-                create_token_account_ix,
+                fund_token_info_ix,
+                fund_mint_ix,
+                fund_token_account_ix,
             ],
             Some(&creator.pubkey()),
         );
 
-        // Sign setup transaction
-        setup_transaction.sign(&[creator, mint, creator_token_account], recent_blockhash);
-        self.client.send_and_confirm_transaction(&setup_transaction)?;
+        // Sign funding transaction
+        fund_transaction.sign(&[creator], recent_blockhash);
+        self.client.send_and_confirm_transaction(&fund_transaction)?;
 
         // Create and send transaction for token creation
         let mut token_transaction = Transaction::new_with_payer(
