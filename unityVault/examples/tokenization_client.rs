@@ -16,6 +16,8 @@ use spl_token::{
 };
 use unity_vault::{Instruction as ProgramInstruction, TokenizationInstruction};
 use unity_vault::tokenization::state::TokenParams;
+mod mock_data;
+use mock_data::MockData;
 
 pub struct TokenizationClient {
     program_id: Pubkey,
@@ -195,27 +197,21 @@ impl TokenizationClient {
 
 #[tokio::main]
 async fn main() {
-    // Program ID (replace with your actual program ID)
-    let program_id = Pubkey::from_str("89Lei4JF8Ga19BKsk3WUw1q25bchBupzyKyMZtw43KQ3").unwrap();
+    // Use mock data for testing
+    let mock_data = MockData::new();
+    let client = TokenizationClient::new(mock_data.program_id, mock_data.rpc_url);
 
-    // Connect to the Solana devnet
-    let rpc_url = String::from("http://127.0.0.1:8899");
-    let client = TokenizationClient::new(program_id, rpc_url);
-
-    // Generate keypairs
-    let creator = Keypair::new();
-    let mint = Keypair::new();
-    let creator_token_account = Keypair::new();
-
-    // Example: Create a token
+    // Example: Create a token using mock data
+    let (name, symbol, decimals, total_supply) = MockData::mock_token_params();
+    
     match client.create_token(
-        &creator,
-        &mint,
-        &creator_token_account,
-        "Test Token".to_string(),
-        "TEST".to_string(),
-        9,  // 9 decimals
-        1000000000,  // 1 billion tokens
+        &Keypair::new(),  // Mock creator keypair
+        &Keypair::new(),  // Mock mint keypair
+        &Keypair::new(),  // Mock token account keypair
+        name,
+        symbol,
+        decimals,
+        total_supply,
     ) {
         Ok((token_info_pda, signature)) => {
             println!("Token created! PDA: {}, Signature: {}", token_info_pda, signature);

@@ -12,6 +12,8 @@ use std::str::FromStr;
 use borsh::{BorshSerialize, BorshDeserialize};
 use unity_vault::{Instruction as ProgramInstruction, LendingInstruction};
 use unity_vault::lending::state::{LoanParams, LendingPoolParams};
+mod mock_data;
+use mock_data::MockData;
 
 pub struct LendingClient {
     program_id: Pubkey,
@@ -47,13 +49,11 @@ impl LendingClient {
         let account_size = 1024; // Size of LendingPool account
         let rent = self.client.get_minimum_balance_for_rent_exemption(account_size)?;
 
-        // Create account instruction
-        let create_account_ix = system_instruction::create_account(
+        // Fund lending pool account
+        let fund_pool_ix = system_instruction::transfer(
             &authority.pubkey(),
             &lending_pool_pda,
             rent,
-            account_size as u64,
-            &self.program_id,
         );
 
         // Initialize lending pool instruction
@@ -75,15 +75,26 @@ impl LendingClient {
             ],
         );
 
-        // Create and send transaction
-        let mut transaction = Transaction::new_with_payer(
-            &[create_account_ix, init_pool_ix],
+        // Get recent blockhash
+        let recent_blockhash = self.client.get_latest_blockhash()?;
+
+        // Create and send funding transaction
+        let mut fund_transaction = Transaction::new_with_payer(
+            &[fund_pool_ix],
             Some(&authority.pubkey()),
         );
 
-        transaction.sign(&[authority], self.client.get_latest_blockhash()?);
-        
-        let signature = self.client.send_and_confirm_transaction(&transaction)?;
+        fund_transaction.sign(&[authority], recent_blockhash);
+        self.client.send_and_confirm_transaction(&fund_transaction)?;
+
+        // Create and send initialization transaction
+        let mut init_transaction = Transaction::new_with_payer(
+            &[init_pool_ix],
+            Some(&authority.pubkey()),
+        );
+
+        init_transaction.sign(&[authority], recent_blockhash);
+        let signature = self.client.send_and_confirm_transaction(&init_transaction)?;
         Ok((lending_pool_pda, signature))
     }
 
@@ -134,14 +145,16 @@ impl LendingClient {
             ],
         );
 
+        // Get recent blockhash
+        let recent_blockhash = self.client.get_latest_blockhash()?;
+
         // Create and send transaction
         let mut transaction = Transaction::new_with_payer(
             &[create_account_ix, create_loan_ix],
             Some(&borrower.pubkey()),
         );
 
-        transaction.sign(&[borrower], self.client.get_latest_blockhash()?);
-        
+        transaction.sign(&[borrower], recent_blockhash);
         let signature = self.client.send_and_confirm_transaction(&transaction)?;
         Ok((loan_pda, signature))
     }
@@ -162,12 +175,15 @@ impl LendingClient {
             ],
         );
 
+        // Get recent blockhash
+        let recent_blockhash = self.client.get_latest_blockhash()?;
+
         let mut transaction = Transaction::new_with_payer(
             &[repay_ix],
             Some(&borrower.pubkey()),
         );
 
-        transaction.sign(&[borrower], self.client.get_latest_blockhash()?);
+        transaction.sign(&[borrower], recent_blockhash);
         let signature = self.client.send_and_confirm_transaction(&transaction)?;
         Ok(signature)
     }
@@ -180,30 +196,47 @@ impl LendingClient {
 
 #[tokio::main]
 async fn main() {
-    // Program ID (replace with your actual program ID)
-    let program_id = Pubkey::from_str("9btUy7Cc2JvTWjAFYaBLfDTGuWHzXmjPXbo2z7N54wdE").unwrap();
+    // Use mock data for testing
+    let mock_data = MockData::new();
+    let client = LendingClient::new(mock_data.program_id, mock_data.rpc_url.clone());
 
-    // Connect to the Solana devnet
-    let rpc_url = String::from("http://127.0.0.1:8899");
-    let client = LendingClient::new(program_id, rpc_url);
+    // Fund test accounts
+    if let Err(err) = mock_data.fund_test_accounts(&client.client, &mock_data.authority) {
+        eprintln!("Error funding test accounts: {}", err);
+        return;
+    }
 
-    // Generate keypairs
-    let authority = Keypair::new();
-    let borrower = Keypair::new();
-    let token_mint = Keypair::new();
-    let token_vault = Keypair::new();
-
-    // Example: Initialize a lending pool
+    // Example: Initialize a lending pool using mock data
+    let (interest_rate, max_loan_amount, min_loan_amount) = MockData::mock_lending_pool_params();
+    
     match client.init_lending_pool(
-        &authority,
-        token_mint.pubkey(),
-        token_vault.pubkey(),
-        500,  // 5% interest rate
-        1000000000,  // 1 SOL max loan
-        100000000,   // 0.1 SOL min loan
+        &mock_data.authority,
+        mock_data.token_mint.pubkey(),
+        mock_data.token_vault.pubkey(),
+        interest_rate,
+        max_loan_amount,
+        min_loan_amount,
     ) {
         Ok((lending_pool_pda, signature)) => {
             println!("Lending pool initialized! PDA: {}, Signature: {}", lending_pool_pda, signature);
+            
+            // Example: Create a loan using a test account
+            let borrower = mock_data.get_test_account(0);
+            let (amount, duration) = MockData::mock_loan_params();
+            
+            match client.create_loan(
+                borrower,
+                lending_pool_pda,
+                amount,
+                duration,
+            ) {
+                Ok((loan_pda, signature)) => {
+                    println!("Loan created! PDA: {}, Signature: {}", loan_pda, signature);
+                }
+                Err(err) => {
+                    eprintln!("Error creating loan: {}", err);
+                }
+            }
         }
         Err(err) => {
             eprintln!("Error initializing lending pool: {}", err);

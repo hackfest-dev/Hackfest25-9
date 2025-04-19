@@ -12,6 +12,8 @@ use std::str::FromStr;
 use borsh::{BorshSerialize, BorshDeserialize};
 use unity_vault::{Instruction as ProgramInstruction, GovernanceInstruction};
 use unity_vault::governance::state::{ProposalParams, VoteType};
+mod mock_data;
+use mock_data::MockData;
 
 pub struct GovernanceClient {
     program_id: Pubkey,
@@ -47,13 +49,11 @@ impl GovernanceClient {
         let account_size = 1024; // Size of Proposal account
         let rent = self.client.get_minimum_balance_for_rent_exemption(account_size)?;
 
-        // Create account instruction
-        let create_account_ix = system_instruction::create_account(
+        // Fund proposal account
+        let fund_proposal_ix = system_instruction::transfer(
             &payer.pubkey(),
             &proposal_pda,
             rent,
-            account_size as u64,
-            &self.program_id,
         );
 
         // Create proposal instruction
@@ -75,15 +75,26 @@ impl GovernanceClient {
             ],
         );
 
-        // Create and send transaction
-        let mut transaction = Transaction::new_with_payer(
-            &[create_account_ix, create_proposal_ix],
+        // Get recent blockhash
+        let recent_blockhash = self.client.get_latest_blockhash()?;
+
+        // Create and send funding transaction
+        let mut fund_transaction = Transaction::new_with_payer(
+            &[fund_proposal_ix],
             Some(&payer.pubkey()),
         );
 
-        transaction.sign(&[payer], self.client.get_latest_blockhash()?);
-        
-        let signature = self.client.send_and_confirm_transaction(&transaction)?;
+        fund_transaction.sign(&[payer], recent_blockhash);
+        self.client.send_and_confirm_transaction(&fund_transaction)?;
+
+        // Create and send initialization transaction
+        let mut init_transaction = Transaction::new_with_payer(
+            &[create_proposal_ix],
+            Some(&payer.pubkey()),
+        );
+
+        init_transaction.sign(&[payer], recent_blockhash);
+        let signature = self.client.send_and_confirm_transaction(&init_transaction)?;
         Ok((proposal_pda, signature))
     }
 
@@ -151,24 +162,20 @@ impl GovernanceClient {
 
 #[tokio::main]
 async fn main() {
-    // Program ID (replace with your actual program ID)
-    let program_id = Pubkey::from_str("9btUy7Cc2JvTWjAFYaBLfDTGuWHzXmjPXbo2z7N54wdE").unwrap();
+    // Use mock data for testing
+    let mock_data = MockData::new();
+    let client = GovernanceClient::new(mock_data.program_id, mock_data.rpc_url);
 
-    // Connect to the Solana devnet
-    let rpc_url = String::from("http://127.0.0.1:8899");
-    let client = GovernanceClient::new(program_id, rpc_url);
-
-    // Generate keypairs
-    let payer = Keypair::new();
-
-    // Example: Create a proposal
+    // Example: Create a proposal using mock data
+    let (title, description, voting_duration, min_votes, min_approval_percentage) = MockData::mock_proposal_params();
+    
     match client.create_proposal(
-        &payer,
-        "Test Proposal".to_string(),
-        "A test proposal".to_string(),
-        86400, // 1 day voting duration
-        10, // Minimum 10 votes
-        60, // 60% approval required
+        &Keypair::new(),  // Mock payer keypair
+        title,
+        description,
+        voting_duration,
+        min_votes,
+        min_approval_percentage,
     ) {
         Ok((proposal_pda, signature)) => {
             println!("Proposal created! PDA: {}, Signature: {}", proposal_pda, signature);

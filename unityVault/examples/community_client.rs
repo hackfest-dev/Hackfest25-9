@@ -13,6 +13,8 @@ use std::str::FromStr;
 use borsh::{BorshSerialize, BorshDeserialize};
 use unity_vault::community::state::CommunityParams;
 use unity_vault::{Instruction as ProgramInstruction, CommunityInstruction};
+mod mock_data;
+use mock_data::MockData;
 
 pub struct CommunityClient {
     program_id: Pubkey,
@@ -44,13 +46,11 @@ impl CommunityClient {
         let account_size = 1024; // Size of Community account
         let rent = self.client.get_minimum_balance_for_rent_exemption(account_size)?;
 
-        // Create account instruction
-        let create_account_ix = system_instruction::create_account(
+        // Fund community account
+        let fund_community_ix = system_instruction::transfer(
             &payer.pubkey(),
             &community_pda,
             rent,
-            account_size as u64,
-            &self.program_id,
         );
 
         // Create community instruction
@@ -64,15 +64,26 @@ impl CommunityClient {
             ],
         );
 
-        // Create and send transaction
-        let mut transaction = Transaction::new_with_payer(
-            &[create_account_ix, create_community_ix],
+        // Get recent blockhash
+        let recent_blockhash = self.client.get_latest_blockhash()?;
+
+        // Create and send funding transaction
+        let mut fund_transaction = Transaction::new_with_payer(
+            &[fund_community_ix],
             Some(&payer.pubkey()),
         );
 
-        transaction.sign(&[payer], self.client.get_latest_blockhash()?);
-        
-        let signature = self.client.send_and_confirm_transaction(&transaction)?;
+        fund_transaction.sign(&[payer], recent_blockhash);
+        self.client.send_and_confirm_transaction(&fund_transaction)?;
+
+        // Create and send initialization transaction
+        let mut init_transaction = Transaction::new_with_payer(
+            &[create_community_ix],
+            Some(&payer.pubkey()),
+        );
+
+        init_transaction.sign(&[payer], recent_blockhash);
+        let signature = self.client.send_and_confirm_transaction(&init_transaction)?;
         Ok((community_pda, signature))
     }
 
@@ -132,7 +143,7 @@ impl CommunityClient {
 
     pub fn list_user_communities(
         &self,
-        user_pubkey: Pubkey,
+        _user_pubkey: Pubkey,
     ) -> Result<Vec<(Pubkey, Vec<u8>)>, Box<dyn std::error::Error>> {
         let accounts = self.client.get_program_accounts(&self.program_id)?;
         
@@ -152,25 +163,20 @@ impl CommunityClient {
 
 #[tokio::main]
 async fn main() {
-    // Program ID (replace with your actual program ID)
-    let program_id = Pubkey::from_str("9btUy7Cc2JvTWjAFYaBLfDTGuWHzXmjPXbo2z7N54wdE").unwrap();
+    // Use mock data for testing
+    let mock_data = MockData::new();
+    let client = CommunityClient::new(mock_data.program_id, mock_data.rpc_url);
 
-    // Connect to the Solana devnet
-    let rpc_url = String::from("http://127.0.0.1:8899");
-    let client = CommunityClient::new(program_id, rpc_url);
-
-    // Generate keypairs
-    let payer = Keypair::new();
-
-    // Example: Create a community
+    // Example: Create a community using mock data
+    let (name, description, rules, is_private) = MockData::mock_community_params();
     let params = CommunityParams {
-        name: "Test Community".to_string(),
-        description: "A test community".to_string(),
-        rules: "Be nice".to_string(),
-        is_private: false,
+        name,
+        description,
+        rules,
+        is_private,
     };
 
-    match client.create_community(&payer, params) {
+    match client.create_community(&Keypair::new(), params) {
         Ok((community_pda, signature)) => {
             println!("Community created! PDA: {}, Signature: {}", community_pda, signature);
         }
