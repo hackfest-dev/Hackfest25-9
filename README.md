@@ -91,11 +91,11 @@ pnpm build
 ## Module Documentation
 
 Detailed documentation for each module can be found in their respective directories:
-- [User Module](./src/user/README.md)
-- [Community Module](./src/community/README.md)
-- [Governance Module](./src/governance/README.md)
-- [Lending Module](./src/lending/README.md)
-- [Tokenization Module](./src/tokenization/README.md)
+- [User Module](./unityVault/src/user/README.md)
+- [Community Module](./unityVault/src/community/README.md)
+- [Governance Module](./unityVault/src/governance/README.md)
+- [Lending Module](./unityVault/src/lending/README.md)
+- [Tokenization Module](./unityVault/src/tokenization/README.md)
 
 ## Security Considerations
 
