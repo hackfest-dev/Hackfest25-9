@@ -1,96 +1,119 @@
-# legacy-HF25-PancakeSloths
+# Unity Vault
+
+A comprehensive Solana program implementing a decentralized platform with community governance, lending, tokenization, and user management capabilities.
+
+## Program Architecture
+
+The program consists of five core modules:
+
+1. **User Module**: Identity and access management
+2. **Community Module**: Group organization and management
+3. **Governance Module**: Decentralized decision-making
+4. **Lending Module**: Financial operations
+5. **Tokenization Module**: Asset management
+
+Each module follows a consistent structure:
+- `state.rs`: Data structures and state management
+- `context.rs`: Validation and security checks
+- `instructions.rs`: Business logic implementation
+- `mod.rs`: Module exports and organization
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node v18.18.0 or higher
-
+- Node.js v18.18.0 or higher
 - Rust v1.77.2 or higher
 - Anchor CLI 0.30.1 or higher
 - Solana CLI 1.18.17 or higher
 
 ### Installation
 
-#### Clone the repo
-
+1. **Clone the repository**
 ```shell
 git clone <repo-url>
-cd <repo-name>
+cd unity-vault
 ```
 
-#### Install Dependencies
-
+2. **Install Dependencies**
 ```shell
 pnpm install
 ```
 
-#### Start the web app
-
-```
-pnpm dev
-```
-
-## Apps
-
-### anchor
-
-This is a Solana program written in Rust using the Anchor framework.
-
-#### Commands
-
-You can use any normal anchor commands. Either move to the `anchor` directory and run the `anchor` command or prefix the
-command with `pnpm`, eg: `pnpm anchor`.
-
-#### Sync the program id:
-
-Running this command will create a new keypair in the `anchor/target/deploy` directory and save the address to the
-Anchor config file and update the `declare_id!` macro in the `./src/lib.rs` file of the program.
-
-You will manually need to update the constant in `anchor/lib/basic-exports.ts` to match the new program id.
-
-```shell
-pnpm anchor keys sync
-```
-
-#### Build the program:
-
+3. **Build the Program**
 ```shell
 pnpm anchor-build
 ```
 
-#### Start the test validator with the program deployed:
-
+4. **Start Local Development**
 ```shell
 pnpm anchor-localnet
 ```
 
-#### Run the tests
+## Development Workflow
 
+### Program Development
+
+#### Sync Program ID
+```shell
+pnpm anchor keys sync
+```
+This will:
+- Create a new keypair in `anchor/target/deploy`
+- Update the Anchor config file
+- Update the `declare_id!` macro in `src/lib.rs`
+- Update the constant in `anchor/lib/basic-exports.ts`
+
+#### Run Tests
 ```shell
 pnpm anchor-test
 ```
 
 #### Deploy to Devnet
-
 ```shell
 pnpm anchor deploy --provider.cluster devnet
 ```
 
-### web
+### Web App Development
 
-This is a React app that uses the Anchor generated client to interact with the Solana program.
+The web interface is built with React and uses the Anchor-generated client to interact with the Solana program.
 
-#### Commands
-
-Start the web app
-
+#### Start Development Server
 ```shell
 pnpm dev
 ```
 
-Build the web app
-
+#### Build for Production
 ```shell
 pnpm build
 ```
+
+## Module Documentation
+
+Detailed documentation for each module can be found in their respective directories:
+- [User Module](./src/user/README.md)
+- [Community Module](./src/community/README.md)
+- [Governance Module](./src/governance/README.md)
+- [Lending Module](./src/lending/README.md)
+- [Tokenization Module](./src/tokenization/README.md)
+
+## Security Considerations
+
+The program implements several security measures:
+- Role-based access control
+- Two-factor authentication
+- KYC verification
+- Financial parameter validation
+- Governance security checks
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
