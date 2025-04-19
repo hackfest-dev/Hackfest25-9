@@ -17,7 +17,7 @@ use unity_vault::{Instruction as ProgramInstruction, UserInstruction};
 #[tokio::main]
 async fn main() {
     // Program ID (replace with your actual program ID)
-    let program_id = Pubkey::from_str("B6CbKbkJWnHo8TyRJhbvETgKvHmn842nT3TJDZCAoYXn").unwrap();
+    let program_id = Pubkey::from_str("9btUy7Cc2JvTWjAFYaBLfDTGuWHzXmjPXbo2z7N54wdE").unwrap();
 
     // Connect to the Solana devnet
     let rpc_url = String::from("http://127.0.0.1:8899");

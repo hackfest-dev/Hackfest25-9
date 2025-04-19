@@ -6,7 +6,9 @@ use solana_program::{
     program_pack::Pack,
     pubkey::Pubkey,
     sysvar::Sysvar,
+    program::invoke_signed,
 };
+use spl_token::instruction as token_instruction;
 use crate::tokenization::{
     state::{TokenInfo, TokenParams, TokenStatus},
     context::{CreateTokenContext, TransferTokensContext, BurnTokensContext},
@@ -47,9 +49,65 @@ pub fn create_token<'a>(
     
     TokenInfo::pack(token_info_data, &mut context.token_info.data.borrow_mut())?;
     
-    // Initialize mint and mint tokens using CPI calls
-    // This part would need to be implemented using CPI calls to the SPL Token program
-    // Similar to how it's done in the lending program
+    // Initialize mint
+    let init_mint_ix = token_instruction::initialize_mint(
+        context.token_program.key,
+        context.mint.key,
+        context.creator.key,
+        Some(context.creator.key),
+        params.decimals,
+    )?;
+    
+    invoke_signed(
+        &init_mint_ix,
+        &[
+            context.mint.clone(),
+            context.rent.clone(),
+            context.token_program.clone(),
+        ],
+        &[],
+    )?;
+    
+    // Initialize token account
+    let init_account_ix = token_instruction::initialize_account(
+        context.token_program.key,
+        context.creator_token_account.key,
+        context.mint.key,
+        context.creator.key,
+    )?;
+    
+    invoke_signed(
+        &init_account_ix,
+        &[
+            context.creator_token_account.clone(),
+            context.mint.clone(),
+            context.creator.clone(),
+            context.rent.clone(),
+            context.token_program.clone(),
+        ],
+        &[],
+    )?;
+    
+    // Mint tokens
+    let mint_to_ix = token_instruction::mint_to(
+        context.token_program.key,
+        context.mint.key,
+        context.creator_token_account.key,
+        context.creator.key,
+        &[],
+        params.total_supply,
+    )?;
+    
+    invoke_signed(
+        &mint_to_ix,
+        &[
+            context.mint.clone(),
+            context.creator_token_account.clone(),
+            context.creator.clone(),
+            context.token_program.clone(),
+        ],
+        &[],
+    )?;
     
     Ok(())
 }
